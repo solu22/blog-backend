@@ -1,0 +1,27 @@
+GET http://localhost:3003/api/blogs HTTP/1.1
+
+###
+
+POST http://localhost:3003/api/blogs HTTP/1.1
+content-type: application/json
+
+{
+    "title": "test with restClient",
+    "author": "Pasang",
+    "url": "www.test.com",
+    "likes": 7
+}
+
+###
+
+DELETE http://localhost:3003/api/blogs/6142e8ecd5b10dc9de502407 HTTP/1.1
+content-type: application/json
+
+###
+
+PUT http://localhost:3003/api/blogs/6142edc0fa6b7c22908f5883 HTTP/1.1
+content-type: application/json
+
+{
+    "likes": "111"
+}
