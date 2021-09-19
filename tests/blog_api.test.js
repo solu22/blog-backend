@@ -1,19 +1,23 @@
 /* eslint-disable no-unused-vars */
 
-const { response } = require('express')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
 const api = supertest(app)
 const Blog = require('../model/blog')
-const helper = require('./blog_api_test_helper')
+const User = require('../model/user')
+const helper = require('./test_helper')
 
-beforeEach(async () => {
+jest.setTimeout(60000)
+beforeEach(async ()=>{
     await Blog.deleteMany({})
-    let blogObj = new Blog(helper.initBlogs[0])
-    await blogObj.save()
-    blogObj = new Blog(helper.initBlogs[1])
-    await blogObj.save()
+    await User.deleteMany({})
+    const user = new User(helper.initUser)
+    await user.save()
+    const userinBlog= helper.initBlogs.map(blog=> blog.user = user.id)
+    const blogObj= await helper.initBlogs.map(blog => new Blog(blog))
+    const promiseArray = blogObj.map(blog=> blog.save())
+    await Promise.all(promiseArray)
 })
 
 test('blog posts are returned as json', async () => {
@@ -28,52 +32,50 @@ test('blog returns unique identifier as id not _id', async () => {
     expect(response.body[0]['id']).toBeDefined()
 })
 
-test('a valid post can be added', async () => {
+test('a valid post can be added', async()=>{
     const blogObj = {
-        title: 'supertest',
+        title: 'tokentest',
         author: 'Async',
-        url: 'https://test.com',
+        url: 'https:test.com',
+        likes:2
     }
-
-    await api
-        .post('/api/blogs')
-        .send(blogObj)
-        .expect(201)
-        .expect('Content-Type', /application\/json/)
-    const response = await api.get('/api/blogs')
-    const contents = response.body.map((post) => post.author)
-    expect(response.body).toHaveLength(helper.initBlogs.length + 1)
+    const token = await helper.userToken()
+    await api.post('/api/blogs').set('Authorization',`bearer ${token}`).send(blogObj)
+    const latestBlog = await helper.blogsInDB()
+    const contents = latestBlog.map((post) => post.author)
     expect(contents).toContainEqual('Async')
+    expect(latestBlog).toHaveLength(helper.initBlogs.length+1)
 })
 
 test('missing likes from post results gives 0 as default value', async () => {
+    
     const blogObj = {
         title: 'likes test',
         author: 'likes',
         url: 'https://likestest.com',
     }
-
-    await api.post('/api/blogs').send(blogObj).expect(201)
+    const token = await helper.userToken()
+    await api.post('/api/blogs').set('Authorization', `bearer ${token}`).send(blogObj)
     const data = await helper.blogsInDB()
     const author = data.find((l) => l.author === 'likes')
     expect(author.likes).toBe(0 || undefined)
 })
 
-test('missing title and url respons with status code 400 bad request', async () => {
+test('missing title and url', async () => {
     const blogObj = {
-        author: 'bad request test',
+        author: 'bad request test'
     }
-
-    await api.post('/api/blogs').send(blogObj).expect(400)
+    const token = await helper.userToken()
+    await api.post('/api/blogs').set('Authorization', `bearer ${token}`).send(blogObj).expect(400)
     const data = await helper.blogsInDB()
-    console.log('>>>', data)
     expect(data).toHaveLength(helper.initBlogs.length)
 })
 
 test('deleting blog returns original length - 1', async ()=>{
     const initialBlogState = await helper.blogsInDB()
     const targetBlog = initialBlogState[0]
-    await api.delete(`/api/blogs/${targetBlog.id}`).expect(200)
+    const token = await helper.userToken()
+    await api.delete(`/api/blogs/${targetBlog.id}`).set('Authorization', `bearer ${token}`).expect(200)
     const afterDelete = await helper.blogsInDB()
     expect(afterDelete).toHaveLength(initialBlogState.length-1)
     
@@ -82,12 +84,24 @@ test('deleting blog returns original length - 1', async ()=>{
 test('update likes of blog', async()=>{
     const initialBlogState = await helper.blogsInDB()
     const targetBlog = initialBlogState[0]
-    await api.put(`/api/blogs/${targetBlog.id}`).send({likes: targetBlog.likes +1}).expect(200)
+    const token = await helper.userToken()
+    await api.put(`/api/blogs/${targetBlog.id}`).set('Authorization', `bearer ${token}`).send({likes: targetBlog.likes +1}).expect(200)
     const afterUpdate = await api.get(`/api/blogs/${targetBlog.id}`)
     expect(afterUpdate.body.likes).toBe(targetBlog.likes +1)
 })
 
+test('blog without Authorization header cannot be added', async()=>{
+    const blogObj = {
+        title: 'without header',
+        author:'need header',
+        url:'headertest.com',
+        likes: 0
+    }
 
+    await api.post('/api/blogs').send(blogObj).expect(401)
+    const getBlogData = await helper.blogsInDB()
+    expect(getBlogData).toHaveLength(helper.initBlogs.length)
+})
 
 afterAll(() => {
     mongoose.connection.close()

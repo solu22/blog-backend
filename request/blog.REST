@@ -1,4 +1,7 @@
+
+
 GET http://localhost:3003/api/blogs HTTP/1.1
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdtYWlsIiwiaWQiOiI2MTQ1ODUwN2M2MDZmMDI1NzdiMmM2MmYiLCJpYXQiOjE2MzE5NTgyMjcsImV4cCI6MTYzMTk2MTgyN30.4dLn-nP8AVlo64zeh03OSziy9P-cHASSKVAFfVnQS1g
 
 ###
 
@@ -6,16 +9,31 @@ POST http://localhost:3003/api/blogs HTTP/1.1
 content-type: application/json
 
 {
-    "title": "test with restClient",
+    "title": "test for users",
     "author": "Pasang",
-    "url": "www.test.com",
+    "url": "www.testforusers.com",
     "likes": 7
 }
 
 ###
 
-DELETE http://localhost:3003/api/blogs/6142e8ecd5b10dc9de502407 HTTP/1.1
+POST http://localhost:3003/api/blogs HTTP/1.1
 content-type: application/json
+
+{
+    "title": "test for users",
+    "author": "Pasang",
+    "url": "www.testforusers.com",
+    "likes": 7,
+    "userId":"61445e0cb270e11b90131401"
+}
+
+###
+
+DELETE http://localhost:3003/api/blogs/6145922f90357ca9d90ec13b HTTP/1.1
+content-type: application/json
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdtYWlsIiwiaWQiOiI2MTQ1ODUwN2M2MDZmMDI1NzdiMmM2MmYiLCJpYXQiOjE2MzE5NTgyMjcsImV4cCI6MTYzMTk2MTgyN30.4dLn-nP8AVlo64zeh03OSziy9P-cHASSKVAFfVnQS1g
+
 
 ###
 
@@ -25,3 +43,23 @@ content-type: application/json
 {
     "likes": "111"
 }
+
+###
+
+POST http://localhost:3003/api/blogs HTTP/1.1
+Content-Type: application/json
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImdtYWlsIiwiaWQiOiI2MTQ1ODUwN2M2MDZmMDI1NzdiMmM2MmYiLCJpYXQiOjE2MzE5NDkyOTMsImV4cCI6MTYzMTk1Mjg5M30.4F47yWGFCuRDHiOMEFrr1f6sWkvDozytx6Kdd3FY1kE
+
+{
+    "title": "test this with bearer token",
+    "author": "TokenTest",
+    "url": "www.token.com",
+    "likes": 7
+    
+}
+
+
+
+
+
+
