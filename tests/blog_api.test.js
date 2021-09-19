@@ -7,17 +7,28 @@ const api = supertest(app)
 const Blog = require('../model/blog')
 const User = require('../model/user')
 const helper = require('./test_helper')
+const jwt = require('jsonwebtoken')
 
 jest.setTimeout(60000)
+let token
 beforeEach(async ()=>{
     await Blog.deleteMany({})
     await User.deleteMany({})
-    const user = new User(helper.initUser)
+    const user = new User({
+        username:'authtest',
+        password:'authtest'
+    })
     await user.save()
-    const userinBlog= helper.initBlogs.map(blog=> blog.user = user.id)
-    const blogObj= await helper.initBlogs.map(blog => new Blog(blog))
-    const promiseArray = blogObj.map(blog=> blog.save())
-    await Promise.all(promiseArray)
+    const payload = { username: user.username, id: user.id}
+    const secret = process.env.JWT_SECRET
+    token = jwt.sign(payload, secret)
+
+    await Promise.all(
+        helper.initBlogs.map(blog=> {blog.user = user.id
+            return new Blog(blog).save()
+        })
+    )
+    
 })
 
 test('blog posts are returned as json', async () => {
@@ -39,7 +50,7 @@ test('a valid post can be added', async()=>{
         url: 'https:test.com',
         likes:2
     }
-    const token = await helper.userToken()
+    
     await api.post('/api/blogs').set('Authorization',`bearer ${token}`).send(blogObj)
     const latestBlog = await helper.blogsInDB()
     const contents = latestBlog.map((post) => post.author)
@@ -54,38 +65,40 @@ test('missing likes from post results gives 0 as default value', async () => {
         author: 'likes',
         url: 'https://likestest.com',
     }
-    const token = await helper.userToken()
+    
     await api.post('/api/blogs').set('Authorization', `bearer ${token}`).send(blogObj)
     const data = await helper.blogsInDB()
     const author = data.find((l) => l.author === 'likes')
     expect(author.likes).toBe(0 || undefined)
 })
 
-test('missing title and url', async () => {
+test('missing title and url responses with status code 400', async () => {
     const blogObj = {
-        author: 'bad request test'
+        author: 'bad request test',
+        likes: 1
     }
-    const token = await helper.userToken()
-    await api.post('/api/blogs').set('Authorization', `bearer ${token}`).send(blogObj).expect(400)
-    const data = await helper.blogsInDB()
-    expect(data).toHaveLength(helper.initBlogs.length)
+    
+    await api.post('/api/blogs')
+    .set('Authorization', `bearer ${token}`).send(blogObj).expect(400)
+    const data = await api.get('/api/blogs')
+    expect(data.body).toHaveLength(helper.initBlogs.length)
 })
 
 test('deleting blog returns original length - 1', async ()=>{
     const initialBlogState = await helper.blogsInDB()
     const targetBlog = initialBlogState[0]
-    const token = await helper.userToken()
-    await api.delete(`/api/blogs/${targetBlog.id}`).set('Authorization', `bearer ${token}`).expect(200)
+    
+    await api.delete(`/api/blogs/${targetBlog.id}`).set('Authorization', `bearer ${token}`).expect(204)
     const afterDelete = await helper.blogsInDB()
     expect(afterDelete).toHaveLength(initialBlogState.length-1)
     
 })
 
-test('update likes of blog', async()=>{
+test('update likes property of blog', async()=>{
     const initialBlogState = await helper.blogsInDB()
     const targetBlog = initialBlogState[0]
-    const token = await helper.userToken()
-    await api.put(`/api/blogs/${targetBlog.id}`).set('Authorization', `bearer ${token}`).send({likes: targetBlog.likes +1}).expect(200)
+    
+    await api.put(`/api/blogs/${targetBlog.id}`).send({likes: targetBlog.likes +1}).expect(200).expect('Content-Type',/application\/json/)
     const afterUpdate = await api.get(`/api/blogs/${targetBlog.id}`)
     expect(afterUpdate.body.likes).toBe(targetBlog.likes +1)
 })
