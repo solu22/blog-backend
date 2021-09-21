@@ -1,20 +1,15 @@
-const jwt = require('jsonwebtoken')
+
 const blogRouter = require('express').Router()
 const Blog = require('../model/blog')
-const User = require('../model/user')
+const middleware = require('../utils/middleware')
 
 
 
-blogRouter.post('/', async(request, response)=>{
+blogRouter.post('/',middleware.tokenExtractor,middleware.userExtractor ,async(request, response)=>{
     const body = request.body
-    const secret = process.env.JWT_SECRET
+    // eslint-disable-next-line no-unused-vars
     const token = request.token
-    const decodedToken = jwt.verify(token,secret )
-
-    if(!token || !decodedToken.id){
-        return response.status(401).json({error: 'token missing or invalid'})
-    }
-    const user = await User.findById(decodedToken.id)
+    const user = request.user
 
     const blog= new Blog({
         ...body, user:user._id
@@ -32,15 +27,10 @@ blogRouter.get('/', async (request, response) => {
 })
 
 
-blogRouter.delete('/:id', async(request, response)=>{
+blogRouter.delete('/:id',middleware.tokenExtractor, middleware.userExtractor, async(request, response)=>{
+    // eslint-disable-next-line no-unused-vars
     const token = request.token
-    const secret = process.env.JWT_SECRET
-    const decodedToken = jwt.verify(token, secret)
-    if(!token || !decodedToken.id)
-    {
-        response.status(401).json({error:'invalid token or token missing'})
-    }
-    const user = await User.findById(decodedToken.id)
+    const user = request.user
     const blogId = request.params.id
 
     if(user.blogs.includes(blogId)){
@@ -52,14 +42,27 @@ blogRouter.delete('/:id', async(request, response)=>{
 
 })
 
-blogRouter.put('/:id', async (request, response)=>{
-    const {likes} = request.body 
-    const blogObj = {
-        likes
+blogRouter.put('/:id', middleware.tokenExtractor,middleware.userExtractor, async (request, response)=>{
+    const body = request.body
+    // eslint-disable-next-line no-unused-vars
+    const token = request.token
+    const user = request.user
+    const blogToUpdate = await Blog.findById(request.params.id)
+    if(blogToUpdate.user._id.toString() === user._id.toString()){
+        const blogObj ={
+            title: body.title,
+            author: body.author,
+            url: body.url,
+            likes: body.likes
+        }
+        const updateBlog = await Blog.findByIdAndUpdate(request.params.id, blogObj, {new:true})
+        response.json(updateBlog)
+    }else{
+        response.status(401).json({error:'Not permitted'})
     }
+    
 
-    const updateBlog = await Blog.findByIdAndUpdate(request.params.id, blogObj, {new:true})
-    response.json(updateBlog)
+   
 })
 
 module.exports = blogRouter
