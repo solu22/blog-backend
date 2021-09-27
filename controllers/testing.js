@@ -1,12 +1,12 @@
-const testingRouter = require('express').Router()
+const router = require('express').Router()
 const Blog = require('../model/blog')
 const User = require('../model/user')
 
-testingRouter.post('/reset', async(request, response)=>{
+router.post('/reset', async (request, response) => {
     await Blog.deleteMany({})
     await User.deleteMany({})
 
     response.status(204).end()
 })
 
-module.exports = testingRouter
+module.exports = router

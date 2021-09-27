@@ -35,6 +35,10 @@ blogRouter.delete('/:id',middleware.tokenExtractor, middleware.userExtractor, as
 
     if(user.blogs.includes(blogId)){
         await Blog.findByIdAndRemove(blogId)
+        user.blogs = user.blogs.filter((blogId)=>{
+            return blogId.toString()!== blogId
+        })
+        await user.save()
         response.status(204).end()
     }else{
         response.status(401).json({error:'You are not authenticated'})
@@ -56,7 +60,7 @@ blogRouter.put('/:id', middleware.tokenExtractor,middleware.userExtractor, async
             likes: body.likes
         }
         const updateBlog = await Blog.findByIdAndUpdate(request.params.id, blogObj, {new:true})
-        response.json(updateBlog)
+        return response.json(updateBlog)
     }else{
         response.status(401).json({error:'Not permitted'})
     }
