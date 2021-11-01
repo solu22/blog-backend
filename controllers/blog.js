@@ -57,7 +57,8 @@ blogRouter.put('/:id', middleware.tokenExtractor,middleware.userExtractor, async
             title: body.title,
             author: body.author,
             url: body.url,
-            likes: body.likes
+            likes: body.likes,
+            comments: body.comments
         }
         const updateBlog = await Blog.findByIdAndUpdate(request.params.id, blogObj, {new:true})
         return response.json(updateBlog)

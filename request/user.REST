@@ -3,9 +3,9 @@ content-type: application/json
 
 {   
     
-    "username": "gmail",
-    "name": "gmail",
-    "password": "gmail"
+    "username": "pas",
+    "name": "pas",
+    "password": "pas"
 }
 
 ###
