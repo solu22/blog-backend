@@ -70,4 +70,11 @@ blogRouter.put('/:id', middleware.tokenExtractor,middleware.userExtractor, async
    
 })
 
+blogRouter.post('/:id/comments', async (request, response) => {
+    const blog = await Blog .findById(request.params.id)
+    blog.comments = blog.comments.concat(request.body.comment)
+    await blog.save()
+    response.json(blog)
+})
+
 module.exports = blogRouter
